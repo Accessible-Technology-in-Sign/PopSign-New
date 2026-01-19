@@ -22,9 +22,10 @@ jobs:
                 pip3 --version
                 arch -arm64 brew install cocoapods
             
-          - name: Config SLRTK
+          - name: Config pipx & SLRTK
             run: |
                 arch -arm64 brew install pipx
+                pipx ensurepath
                 pipx install slrtk
                 slrtk gtk install --unity --path .
 
