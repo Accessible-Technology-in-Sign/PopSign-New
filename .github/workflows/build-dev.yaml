@@ -6,6 +6,7 @@ env:
   RUNNER_TEMP: ${{ github.workspace }}/_temp
 permissions:
     contents: write
+# Note: Prereqs: Homebrew installed & on PATH
 jobs:
     setup:
       runs-on: [self-hosted, macOS]
