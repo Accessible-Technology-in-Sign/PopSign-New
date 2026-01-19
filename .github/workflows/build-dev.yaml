@@ -33,7 +33,8 @@ jobs:
                 sudo xcodebuild -license accept
                 xcodebuild -runFirstLaunch -checkForNewerComponents 
                 xcodebuild -downloadPlatform iOS
-                # prevents no build target issue
+                # prevents no build target issue?
+                # PROBLEMATIC: This needs manual intervention. Instead return an error saying you need to login to update things
 
     build-mobile:
         runs-on: [self-hosted, macOS]
@@ -51,6 +52,14 @@ jobs:
                 restore-keys: |
                     Library-${{ matrix.targetPlatform }}-
                     Library-
+
+          - name: Re-authenticate Git
+            run: |
+              # 1. Remove any stale headers from the previous job
+              git config --unset-all http.https://github.com/.extraheader || true
+              
+              # 2. Inject the fresh GITHUB_TOKEN directly into the origin URL
+              git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
           - name: Build with Unity Builder
             uses: game-ci/unity-builder@v4
