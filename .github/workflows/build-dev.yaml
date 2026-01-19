@@ -25,9 +25,8 @@ jobs:
           - name: Config pipx & SLRTK
             run: |
                 arch -arm64 brew install pipx
-                pipx ensurepath
                 pipx install slrtk
-                slrtk gtk install --unity --path .
+                pipx run slrtk gtk install --unity --path .
 
           - name: Check for XCode Component Updates
             run: |
