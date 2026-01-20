@@ -11,6 +11,17 @@ jobs:
     setup:
       runs-on: [self-hosted, macOS]
       steps:
+          - name: Check for Connected Android Devices
+            run: |
+              # white pixel
+              adb connect 192.168.1.155:5558
+              # black pixel
+              adb connect 192.168.1.229:5557
+
+              if (($(adb devices | grep -w "device" | wc -l) < 2)); then
+                echo "::warning::One or more Android test devices may not have been connected. Ensure both phones are powered on and connected to the SymAI network. "
+              fi
+
           - name: Checkout repository
             uses: actions/checkout@v4
 
@@ -77,87 +88,116 @@ jobs:
                 name: build-folder-after-${{ matrix.targetPlatform }}
                 path: build
 
-    export-ios:
+    install-on-android-phones:
         needs: build-mobile
-        runs-on: [self-hosted, macOS]
-        env:
-            KEYCHAIN: job-${{ github.job }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}
+        runs-on: [self-hosted]
         steps:
-
-          - name: Download build folder artifact
-            uses: actions/download-artifact@v4
+          - name: Download Android Build
+            uses: actions/download-artifact@v5
             with:
-                name: build-folder-after-iOS
-                path: build
-
-          - name: Import Certs
-            uses: apple-actions/import-codesign-certs@v3
-            with:
-                keychain: ${{ env.KEYCHAIN }}
-                p12-file-base64: ${{ secrets.DEV_BUILD_CERTIFICATE_BASE64 }}
-                p12-password: ${{ secrets.DEV_P12_PASSWORD }}    
-
-          - name: Install Provisioning Profile
+              name: build-folder-after-Android
+              path: android-build
+              
+          - name: Connect to phones 
             run: |
-                # Create the directory if it doesn't exist
-                mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-                # Decode the base64 secret and save it to the correct directory
-                echo "${{ secrets.DEV_BUILD_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PopSignReleaseTestingProfile.mobileprovision
+              # white pixel
+              adb connect 192.168.1.155:5558
+              # black pixel
+              adb connect 192.168.1.229:5557
+
+              if (($(adb devices | grep -w "device" | wc -l) < 2)); then
+                echo "::warning::One or more Android test devices may not have been connected. Ensure both phones are powered on and connected to the SymAI network. "
+              fi
+
+          - name: Install on Black Pixel
+            run:
+              adb -s 192.168.1.229:5557 install ${{ github.workspace }}/android-build/Android/Android.apk/PopSignAI.arm64-v8a.apk || echo "Install on Black Pixel Failed!"
+
+          - name: Install on White Pixel
+            run:
+              adb -s 192.168.1.155:5558 install ${{ github.workspace }}/android-build/Android/Android.apk/PopSignAI.arm64-v8a.apk || echo "Install on White Pixel Failed!"
+
+    # export-ios:
+    #     needs: build-mobile
+    #     runs-on: [self-hosted, macOS]
+    #     env:
+    #         KEYCHAIN: job-${{ github.job }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}
+    #     steps:
+
+    #       - name: Download build folder artifact
+    #         uses: actions/download-artifact@v4
+    #         with:
+    #             name: build-folder-after-iOS
+    #             path: build
+
+    #       - name: Import Certs
+    #         uses: apple-actions/import-codesign-certs@v3
+    #         with:
+    #             keychain: ${{ env.KEYCHAIN }}
+    #             p12-file-base64: ${{ secrets.DEV_BUILD_CERTIFICATE_BASE64 }}
+    #             p12-password: ${{ secrets.DEV_P12_PASSWORD }}    
+
+    #       - name: Install Provisioning Profile
+    #         run: |
+    #             # Create the directory if it doesn't exist
+    #             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+    #             # Decode the base64 secret and save it to the correct directory
+    #             echo "${{ secrets.DEV_BUILD_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PopSignReleaseTestingProfile.mobileprovision
         
-          - name: Create XCArchive
-            run: |
-                xcodebuild archive \
-                  -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
-                  -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
-                  -scheme Unity-iPhone \
-                  -destination 'generic/platform=iOS' \
-                  PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
-                  CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
+    #       - name: Create XCArchive
+    #         run: |
+    #             xcodebuild archive \
+    #               -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
+    #               -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
+    #               -scheme Unity-iPhone \
+    #               -destination 'generic/platform=iOS' \
+    #               PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
+    #               CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
 
-          - name: Generate Plist
-            run: |
-                echo '<?xml version="1.0" encoding="UTF-8"?>
-                <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                <plist version="1.0">
-                <dict>
-                    <key>method</key>
-                    <string>release-testing</string>
-                    <key>signingStyle</key>
-                    <string>manual</string>
-                    <key>provisioningProfiles</key>
-                    <dict>
-                        <key>${{ secrets.APPLE_APP_ID }}</key>
-                        <string>${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}</string>
-                    </dict>
-                    <key>teamID</key>
-                    <string>${{ secrets.APPLE_TEAM_ID }}</string>
-                </dict>
-                </plist>' > ${{ github.workspace }}/exportOptions.plist
+    #       - name: Generate Plist
+    #         run: |
+    #             echo '<?xml version="1.0" encoding="UTF-8"?>
+    #             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    #             <plist version="1.0">
+    #             <dict>
+    #                 <key>method</key>
+    #                 <string>release-testing</string>
+    #                 <key>signingStyle</key>
+    #                 <string>manual</string>
+    #                 <key>provisioningProfiles</key>
+    #                 <dict>
+    #                     <key>${{ secrets.APPLE_APP_ID }}</key>
+    #                     <string>${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}</string>
+    #                 </dict>
+    #                 <key>teamID</key>
+    #                 <string>${{ secrets.APPLE_TEAM_ID }}</string>
+    #             </dict>
+    #             </plist>' > ${{ github.workspace }}/exportOptions.plist
             
 
-          - name: Export IPA from Archive
-            run: |
-                xcodebuild -exportArchive \
-                  -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
-                  -exportArchive \
-                  -exportOptionsPlist "${{ github.workspace }}/exportOptions.plist" \
-                  -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
-                  -exportPath "${{ github.workspace }}/build/release.ipa" \
-                  PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
-                  CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
+    #       - name: Export IPA from Archive
+    #         run: |
+    #             xcodebuild -exportArchive \
+    #               -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
+    #               -exportArchive \
+    #               -exportOptionsPlist "${{ github.workspace }}/exportOptions.plist" \
+    #               -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
+    #               -exportPath "${{ github.workspace }}/build/release.ipa" \
+    #               PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
+    #               CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
 
-            # Upload the IPA as an artifact
-          - name: Upload .ipa artifact
-            uses: actions/upload-artifact@v4
-            with:
-                name: popsign-ipa
-                path: build/release.ipa/PopSignAI.ipa
+    #         # Upload the IPA as an artifact
+    #       - name: Upload .ipa artifact
+    #         uses: actions/upload-artifact@v4
+    #         with:
+    #             name: popsign-ipa
+    #             path: build/release.ipa/PopSignAI.ipa
 
-        # Cleanup
-          - name: Delete keychain
-            if: always()
-            run: |
-                security delete-keychain "${{ env.KEYCHAIN }}".keychain
+    #     # Cleanup
+    #       - name: Delete keychain
+    #         if: always()
+    #         run: |
+    #             security delete-keychain "${{ env.KEYCHAIN }}".keychain
     
     create-release:
         runs-on: [self-hosted, macOS]
