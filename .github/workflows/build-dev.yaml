@@ -45,7 +45,7 @@ jobs:
                 xcodebuild -runFirstLaunch -checkForNewerComponents 
                 xcodebuild -downloadPlatform iOS
                 # prevents no build target issue?
-                # PROBLEMATIC: This needs manual intervention. Instead return an error saying you need to login to update things
+                # TODO: Add xcodebuild commands to sudoers so this can actually run autonomously
 
     build-mobile:
         runs-on: [self-hosted, macOS]
@@ -111,11 +111,13 @@ jobs:
 
           - name: Install on Black Pixel
             run:
-              adb -s 192.168.1.229:5557 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "Install on Black Pixel Failed!"
+              adb -s 192.168.1.229:5557 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "::warning::Install on Black Pixel Failed! "
+              adb -s 192.168.1.229:5557 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
 
           - name: Install on White Pixel
             run:
               adb -s 192.168.1.155:5558 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "Install on White Pixel Failed!"
+              adb -s 192.168.1.155:5558 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
 
     export-ios:
         needs: build-mobile
@@ -215,15 +217,40 @@ jobs:
                 name: build-folder-after-Android
                 path: android-build
 
+            - name: Generate Context-Aware Tag
+              id: tag_gen
+              run: |
+                # get & concat SHA
+                SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+                
+                # branch name or pr no.
+                if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+                  REF_NAME="pr-${{ github.event.number }}"
+                else
+                  REF_NAME=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+                fi
+
+                # get culprit
+                ACTOR=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
+                
+                # make tag
+                TAG_NAME="build-${{ github.run_number }}-${ACTOR}-${REF_NAME}-${SHORT_SHA}"
+                
+                # output tag
+                echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+                echo "Generated tag: $TAG_NAME"
+
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:
                   files: |
                       PopSignAI.ipa/PopSignAI.ipa
-                      ${{ github.workspace }}/android-build/Android/Android.apk/PopSignAI.arm64-v8a.apk
-                      ${{ github.workspace }}/android-build/Android/Android.apk/PopSignAI.armeabi-v7a.apk
-                  tag_name: Mobile-Releases-${{ github.run_number }}-${{ github.triggering_actor }}
+                      ${{ github.workspace }}/android-build/Android/PopSignAI.arm64-v8a.apk
+                      ${{ github.workspace }}/android-build/Android/PopSignAI.armeabi-v7a.apk
+                  tag_name: ${{ steps.tag_gen.outputs.tag_name }}
                   token: ${{ secrets.GITHUB_TOKEN }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            #- Future Step: Auto-post to Discord when a new PR is submitted to make things easy --> Needs webhooks
 ...
