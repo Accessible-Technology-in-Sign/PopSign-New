@@ -1,0 +1,17 @@
+# Lab Phones
+# Be sure to adb tcpip each phone's IP to port 5555 to make life easy!
+
+# Batch One Phones
+# (Pixel 4a, Black w White Button): 
+192.168.1.155:5558
+# (Pixel 4a, White w Mint Button): 
+192.168.1.229:5557
+
+# Batch Two Phones
+# (Pixel 4a, Black w Mint Button in Dark Grey 
+Case)
+192.168.1.125
+# (Copycat phone — Pixel 5a, Dark Grey w Grey Button)
+192.168.1.179
+# MUC TA BEACON 2 - Pixel 7 Pro, Black
+192.168.1.185

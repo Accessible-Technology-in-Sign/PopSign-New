@@ -97,27 +97,33 @@ jobs:
             with:
               name: build-folder-after-Android
               path: android-build
-              
-          - name: Connect to phones 
+
+          - name: Install on Android phones
             run: |
-              # white pixel
-              adb connect 192.168.1.155:5558
-              # black pixel
-              adb connect 192.168.1.229:5557
+              chmod +x scripts/deploy-android.sh
+              ./.github/scripts/deploy-android.sh ${{ github.workspace }}/android-build/Android/Android.apk edu.gatech.ccg.popsignai
 
-              if (($(adb devices | grep -w "device" | wc -l) < 2)); then
-                echo "::warning::One or more Android test devices may not have been connected. Ensure both phones are powered on and connected to the SymAI network. "
-              fi
+              
+          # - name: Connect to phones 
+          #   run: |
+          #     # white pixel
+          #     adb connect 192.168.1.155:5558
+          #     # black pixel
+          #     adb connect 192.168.1.229:5557
 
-          - name: Install on Black Pixel
-            run:
-              adb -s 192.168.1.229:5557 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "::warning::Install on Black Pixel Failed! "
-              adb -s 192.168.1.229:5557 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
+          #     if (($(adb devices | grep -w "device" | wc -l) < 2)); then
+          #       echo "::warning::One or more Android test devices may not have been connected. Ensure both phones are powered on and connected to the SymAI network. "
+          #     fi
 
-          - name: Install on White Pixel
-            run:
-              adb -s 192.168.1.155:5558 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "Install on White Pixel Failed!"
-              adb -s 192.168.1.155:5558 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
+          # - name: Install on Black Pixel
+          #   run:
+          #     adb -s 192.168.1.229:5557 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "::warning::Install on Black Pixel Failed! "
+          #     adb -s 192.168.1.229:5557 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
+
+          # - name: Install on White Pixel
+          #   run:
+          #     adb -s 192.168.1.155:5558 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "Install on White Pixel Failed!"
+          #     adb -s 192.168.1.155:5558 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
 
     export-ios:
         needs: build-mobile
@@ -227,7 +233,7 @@ jobs:
                 if [[ "${{ github.event_name }}" == "pull_request" ]]; then
                   REF_NAME="pr-${{ github.event.number }}"
                 else
-                  REF_NAME=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+                  REF_NAME=$(echo "commit-${{ github.ref_name }}" | sed 's/\//-/g')
                 fi
 
                 # get culprit
@@ -245,8 +251,7 @@ jobs:
               with:
                   files: |
                       PopSignAI.ipa/PopSignAI.ipa
-                      ${{ github.workspace }}/android-build/Android/PopSignAI.arm64-v8a.apk
-                      ${{ github.workspace }}/android-build/Android/PopSignAI.armeabi-v7a.apk
+                      ${{ github.workspace }}/android-build/Android/Android.apk
                   tag_name: ${{ steps.tag_gen.outputs.tag_name }}
                   token: ${{ secrets.GITHUB_TOKEN }}
               env:
