@@ -11,17 +11,6 @@ jobs:
     setup:
       runs-on: [self-hosted, macOS]
       steps:
-          - name: Check for Connected Android Devices
-            run: |
-              # white pixel
-              timeout 5 adb connect 192.168.1.155:5558
-              # black pixel
-              timeout 5 adb connect 192.168.1.229:5557
-
-              if (($(adb devices | grep -w "device" | wc -l) < 2)); then
-                echo "::warning::One or more Android test devices may not have been connected. Ensure both phones are powered on and connected to the SymAI network. "
-              fi
-
           - name: Checkout repository
             uses: actions/checkout@v4
 
