@@ -14,4 +14,6 @@ Case)
 # (Copycat phone — Pixel 5a, Dark Grey w Grey Button)
 192.168.1.179
 # MUC TA BEACON 2 - Pixel 7 Pro, Black
-192.168.1.185
+192.168.1.241
+
+# TODO: Give phones STATIC IPs

@@ -14,9 +14,9 @@ jobs:
           - name: Check for Connected Android Devices
             run: |
               # white pixel
-              adb connect 192.168.1.155:5558
+              timeout 5 adb connect 192.168.1.155:5558
               # black pixel
-              adb connect 192.168.1.229:5557
+              timeout 5 adb connect 192.168.1.229:5557
 
               if (($(adb devices | grep -w "device" | wc -l) < 2)); then
                 echo "::warning::One or more Android test devices may not have been connected. Ensure both phones are powered on and connected to the SymAI network. "
@@ -66,6 +66,7 @@ jobs:
 
           - name: Re-authenticate Git
             run: |
+              # this is kinda a bs step
               # 1. Remove any stale headers from the previous job
               git config --unset-all http.https://github.com/.extraheader || true
               
@@ -101,7 +102,7 @@ jobs:
           - name: Install on Android phones
             run: |
               chmod +x scripts/deploy-android.sh
-              ./.github/scripts/deploy-android.sh ${{ github.workspace }}/android-build/Android/Android.apk edu.gatech.ccg.popsignai
+              ${{ github.workspace }}/.github/scripts/deploy-android.sh ${{ github.workspace }}/android-build/Android/Android.apk edu.gatech.ccg.popsignai
 
               
           # - name: Connect to phones 

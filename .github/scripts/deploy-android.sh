@@ -6,7 +6,7 @@ DEVICES="devices.txt"
 FAILED_DEVICES=()
 
 if [ -z "$APK_PATH" ] || [ -z "$PACKAGE_NAME" ]; then
-  echo "Error: Missing arguments."
+  echo "Missing args"
   echo "Usage: ./deploy.sh <apk_path> <package_name>"
   exit 1
 fi
