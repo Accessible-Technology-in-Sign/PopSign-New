@@ -201,7 +201,7 @@ jobs:
     
     create-release:
         runs-on: [self-hosted, macOS]
-        needs: [build-mobile, export-ios]
+        needs: [build-mobile]
         steps:
             - name: Download iOS build
               uses: actions/download-artifact@v4
