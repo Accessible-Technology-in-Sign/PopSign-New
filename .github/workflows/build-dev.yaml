@@ -92,17 +92,10 @@ jobs:
             run: |
               tree -a || (echo "tree didn't work bc gha hates me fr" && ls -la)
 
-          - name: Print files in dir
-            run: |
-              cd ${{ github.workspace }}
-              ls -la
-              tree -a
-
-
           - name: Install on Android phones
             run: |
               chmod +x scripts/deploy-android.sh
-              ${{ github.workspace }}/.github/scripts/deploy-android.sh ${{ github.workspace }}/android-build/Android/Android.apk edu.gatech.ccg.popsignai
+              ./github/scripts/deploy-android.sh ${{ github.workspace }}/android-build/Android/Android.apk edu.gatech.ccg.popsignai
 
               
           # - name: Connect to phones 
