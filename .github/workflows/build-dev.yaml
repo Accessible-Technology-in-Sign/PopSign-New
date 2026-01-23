@@ -42,7 +42,7 @@ jobs:
         strategy:
           matrix:
             targetPlatform:
-                - iOS
+                # - iOS
                 - Android
         steps:
           - uses: actions/cache@v3
@@ -115,137 +115,137 @@ jobs:
           #     adb -s 192.168.1.155:5558 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "Install on White Pixel Failed!"
           #     adb -s 192.168.1.155:5558 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
 
-    export-iOS:
-        needs: build-mobile
-        runs-on: [self-hosted, macOS]
-        env:
-            KEYCHAIN: job-${{ github.job }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}
-        steps:
+#     export-iOS:
+#         needs: build-mobile
+#         runs-on: [self-hosted, macOS]
+#         env:
+#             KEYCHAIN: job-${{ github.job }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}
+#         steps:
 
-          - name: Download build folder artifact
-            uses: actions/download-artifact@v4
-            with:
-                name: build-folder-after-iOS
-                path: build
+#           - name: Download build folder artifact
+#             uses: actions/download-artifact@v4
+#             with:
+#                 name: build-folder-after-iOS
+#                 path: build
 
-          - name: Import Certs
-            uses: apple-actions/import-codesign-certs@v3
-            with:
-                keychain: ${{ env.KEYCHAIN }}
-                p12-file-base64: ${{ secrets.DEV_BUILD_CERTIFICATE_BASE64 }}
-                p12-password: ${{ secrets.DEV_P12_PASSWORD }}    
+#           - name: Import Certs
+#             uses: apple-actions/import-codesign-certs@v3
+#             with:
+#                 keychain: ${{ env.KEYCHAIN }}
+#                 p12-file-base64: ${{ secrets.DEV_BUILD_CERTIFICATE_BASE64 }}
+#                 p12-password: ${{ secrets.DEV_P12_PASSWORD }}    
 
-          - name: Install Provisioning Profile
-            run: |
-                # Create the directory if it doesn't exist
-                mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-                # Decode the base64 secret and save it to the correct directory
-                echo "${{ secrets.DEV_BUILD_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PopSignReleaseTestingProfile.mobileprovision
+#           - name: Install Provisioning Profile
+#             run: |
+#                 # Create the directory if it doesn't exist
+#                 mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+#                 # Decode the base64 secret and save it to the correct directory
+#                 echo "${{ secrets.DEV_BUILD_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/PopSignReleaseTestingProfile.mobileprovision
         
-          - name: Create XCArchive
-            run: |
-                xcodebuild archive \
-                  -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
-                  -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
-                  -scheme Unity-iPhone \
-                  -destination 'generic/platform=iOS' \
-                  PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
-                  CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
+#           - name: Create XCArchive
+#             run: |
+#                 xcodebuild archive \
+#                   -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
+#                   -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
+#                   -scheme Unity-iPhone \
+#                   -destination 'generic/platform=iOS' \
+#                   PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
+#                   CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
 
-          - name: Generate Plist
-            run: |
-                echo '<?xml version="1.0" encoding="UTF-8"?>
-                <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                <plist version="1.0">
-                <dict>
-                    <key>method</key>
-                    <string>release-testing</string>
-                    <key>signingStyle</key>
-                    <string>manual</string>
-                    <key>provisioningProfiles</key>
-                    <dict>
-                        <key>${{ secrets.APPLE_APP_ID }}</key>
-                        <string>${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}</string>
-                    </dict>
-                    <key>teamID</key>
-                    <string>${{ secrets.APPLE_TEAM_ID }}</string>
-                </dict>
-                </plist>' > ${{ github.workspace }}/exportOptions.plist
+#           - name: Generate Plist
+#             run: |
+#                 echo '<?xml version="1.0" encoding="UTF-8"?>
+#                 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+#                 <plist version="1.0">
+#                 <dict>
+#                     <key>method</key>
+#                     <string>release-testing</string>
+#                     <key>signingStyle</key>
+#                     <string>manual</string>
+#                     <key>provisioningProfiles</key>
+#                     <dict>
+#                         <key>${{ secrets.APPLE_APP_ID }}</key>
+#                         <string>${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}</string>
+#                     </dict>
+#                     <key>teamID</key>
+#                     <string>${{ secrets.APPLE_TEAM_ID }}</string>
+#                 </dict>
+#                 </plist>' > ${{ github.workspace }}/exportOptions.plist
             
 
-          - name: Export IPA from Archive
-            run: |
-                xcodebuild -exportArchive \
-                  -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
-                  -exportArchive \
-                  -exportOptionsPlist "${{ github.workspace }}/exportOptions.plist" \
-                  -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
-                  -exportPath "${{ github.workspace }}/build/release.ipa" \
-                  PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
-                  CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
+#           - name: Export IPA from Archive
+#             run: |
+#                 xcodebuild -exportArchive \
+#                   -project "${{ github.workspace }}/build/iOS/iOS/Unity-iPhone.xcodeproj" \
+#                   -exportArchive \
+#                   -exportOptionsPlist "${{ github.workspace }}/exportOptions.plist" \
+#                   -archivePath "${{ github.workspace }}/build/Unity-iPhone.xcarchive" \
+#                   -exportPath "${{ github.workspace }}/build/release.ipa" \
+#                   PROVISIONING_PROFILE_SPECIFIER="${{ secrets.DEV_PROVISIONING_PROFILE_SPECIFIER }}" \
+#                   CODE_SIGN_IDENTITY="${{ secrets.CODE_SIGN_IDENTITY }}"
 
-            # Upload the IPA as an artifact
-          - name: Upload .ipa artifact
-            uses: actions/upload-artifact@v4
-            with:
-                name: popsign-ipa
-                path: build/release.ipa/PopSignAI.ipa
+#             # Upload the IPA as an artifact
+#           - name: Upload .ipa artifact
+#             uses: actions/upload-artifact@v4
+#             with:
+#                 name: popsign-ipa
+#                 path: build/release.ipa/PopSignAI.ipa
 
-        # Cleanup
-          - name: Delete keychain
-            if: always()
-            run: |
-                security delete-keychain "${{ env.KEYCHAIN }}".keychain
+#         # Cleanup
+#           - name: Delete keychain
+#             if: always()
+#             run: |
+#                 security delete-keychain "${{ env.KEYCHAIN }}".keychain
     
-    create-release:
-        runs-on: [self-hosted, macOS]
-        needs: [build-mobile, export-iOS]
-        steps:
-            - name: Download iOS build
-              uses: actions/download-artifact@v4
-              with:
-                name: popsign-ipa
-                path: PopSignAI.ipa
+#     create-release:
+#         runs-on: [self-hosted, macOS]
+#         needs: [build-mobile, export-iOS]
+#         steps:
+#             - name: Download iOS build
+#               uses: actions/download-artifact@v4
+#               with:
+#                 name: popsign-ipa
+#                 path: PopSignAI.ipa
 
-            - name: Download Android Build
-              uses: actions/download-artifact@v5
-              with:
-                name: build-folder-after-Android
-                path: android-build
+#             - name: Download Android Build
+#               uses: actions/download-artifact@v5
+#               with:
+#                 name: build-folder-after-Android
+#                 path: android-build
 
-            - name: Generate Context-Aware Tag
-              id: tag_gen
-              run: |
-                # get & concat SHA
-                SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+#             - name: Generate Context-Aware Tag
+#               id: tag_gen
+#               run: |
+#                 # get & concat SHA
+#                 SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
                 
-                # branch name or pr no.
-                if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-                  REF_NAME="pr-${{ github.event.number }}"
-                else
-                  REF_NAME=$(echo "commit-${{ github.ref_name }}" | sed 's/\//-/g')
-                fi
+#                 # branch name or pr no.
+#                 if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+#                   REF_NAME="pr-${{ github.event.number }}"
+#                 else
+#                   REF_NAME=$(echo "commit-${{ github.ref_name }}" | sed 's/\//-/g')
+#                 fi
 
-                # get culprit
-                ACTOR=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
+#                 # get culprit
+#                 ACTOR=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
                 
-                # make tag
-                TAG_NAME="build-${{ github.run_number }}-${ACTOR}-${REF_NAME}-${SHORT_SHA}"
+#                 # make tag
+#                 TAG_NAME="build-${{ github.run_number }}-${ACTOR}-${REF_NAME}-${SHORT_SHA}"
                 
-                # output tag
-                echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-                echo "Generated tag: $TAG_NAME"
+#                 # output tag
+#                 echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+#                 echo "Generated tag: $TAG_NAME"
 
-            - name: Create Release
-              uses: softprops/action-gh-release@v2
-              with:
-                  files: |
-                      PopSignAI.ipa/PopSignAI.ipa
-                      ${{ github.workspace }}/android-build/Android/Android.apk
-                  tag_name: ${{ steps.tag_gen.outputs.tag_name }}
-                  token: ${{ secrets.GITHUB_TOKEN }}
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#             - name: Create Release
+#               uses: softprops/action-gh-release@v2
+#               with:
+#                   files: |
+#                       PopSignAI.ipa/PopSignAI.ipa
+#                       ${{ github.workspace }}/android-build/Android/Android.apk
+#                   tag_name: ${{ steps.tag_gen.outputs.tag_name }}
+#                   token: ${{ secrets.GITHUB_TOKEN }}
+#               env:
+#                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            #- Future Step: Auto-post to Discord when a new PR is submitted to make things easy --> Needs webhooks
-...
+#             #- Future Step: Auto-post to Discord when a new PR is submitted to make things easy --> Needs webhooks
+# ...
