@@ -22,11 +22,11 @@ jobs:
                 pip3 --version
                 arch -arm64 brew install cocoapods
             
-          - name: Config pipx & SLRTK
-            run: |
-                arch -arm64 brew install pipx
-                pipx install slrtk
-                pipx run slrtk gtk install --unity --path .
+          # - name: Config pipx & SLRTK
+          #   run: |
+          #       arch -arm64 brew install pipx
+          #       pipx install slrtk
+          #       pipx run slrtk gtk install --unity --path .
 
           - name: Check for XCode Component Updates
             run: |
@@ -90,7 +90,13 @@ jobs:
 
           - name: Print files
             run: |
-              tree || (echo "tree didn't work bc gha hates me fr" && ls -la)
+              tree -a || (echo "tree didn't work bc gha hates me fr" && ls -la)
+
+          - name: Print files in dir
+            run: |
+              cd ${{ github.workspace }}
+              ls -la
+              tree -a
 
 
           - name: Install on Android phones
