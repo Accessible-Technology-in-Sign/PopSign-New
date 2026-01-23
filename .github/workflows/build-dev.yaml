@@ -115,7 +115,7 @@ jobs:
           #     adb -s 192.168.1.155:5558 install ${{ github.workspace }}/android-build/Android/Android.apk || echo "Install on White Pixel Failed!"
           #     adb -s 192.168.1.155:5558 shell cmd notification post -t "PopSign Server" "install" "The server attempted to install PopSign AI to this device." || echo "Failed to send notification."
 
-    export-ios:
+    export-iOS:
         needs: build-mobile
         runs-on: [self-hosted, macOS]
         env:
