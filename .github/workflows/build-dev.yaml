@@ -88,6 +88,11 @@ jobs:
               name: build-folder-after-Android
               path: android-build
 
+          - name: Print files
+            run: |
+              tree || (echo "tree didn't work bc gha hates me fr" && ls -la)
+
+
           - name: Install on Android phones
             run: |
               chmod +x scripts/deploy-android.sh
